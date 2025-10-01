@@ -82,18 +82,17 @@ export default async function handler(req, res) {
 
     // 1. Upsert contact with custom fields
     const upsertBody = {
-      locationId: LOCATION_ID,
-      name: name,
-      email: email,
-      phone: phone || "",
-      source: source || "Website Review Widget",
-      customField: {
-        [CUSTOM_FIELDS.RATING]: String(rating || ""),
-        [CUSTOM_FIELDS.REVIEW_LOCATION]: String(location || ""),
-        [CUSTOM_FIELDS.REVIEW_DATE]: date || new Date().toISOString(),
-        [CUSTOM_FIELDS.YOUR_FEEDBACK]: String(feedback || "")
-      }
-    };
+  locationId: LOCATION_ID,
+  name: name,
+  email: email,
+  phone: phone || "",
+  source: source || "Website Review Widget",
+  // Custom fields directly here, not nested
+  [CUSTOM_FIELDS.RATING]: String(rating || ""),
+  [CUSTOM_FIELDS.REVIEW_LOCATION]: String(location || ""),
+  [CUSTOM_FIELDS.REVIEW_DATE]: date || new Date().toISOString(),
+  [CUSTOM_FIELDS.YOUR_FEEDBACK]: String(feedback || "")
+};
 
     console.log('Upserting contact...');
     
