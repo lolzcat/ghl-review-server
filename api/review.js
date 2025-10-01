@@ -1,13 +1,13 @@
 // api/review.js - Vercel Serverless Function
-// This file goes in the /api directory for Vercel deployment
+// Fixed version that creates contact first, then updates custom fields
 
 export default async function handler(req, res) {
   // Enable CORS for your WordPress site
   const allowedOrigins = [
-    'https://app.gohighlevel.com',  // Your WordPress domain
-    'http://localhost',              // For local testing
+    'https://app.gohighlevel.com',
+    'http://localhost',
     // Add your actual WordPress domain here:
-    'https://www.huffmanhuffman.com'
+    // 'https://yourdomain.com'
   ];
   
   const origin = req.headers.origin;
@@ -29,7 +29,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Get environment variables (set in Vercel dashboard)
+  // Get environment variables
   const ACCESS_TOKEN = process.env.GHL_ACCESS_TOKEN;
   const LOCATION_ID = process.env.GHL_LOCATION_ID;
   
@@ -80,21 +80,16 @@ export default async function handler(req, res) {
       });
     }
 
-    // 1. Upsert contact with custom fields
+    // Step 1: Create/Update contact WITHOUT custom fields
     const upsertBody = {
-  locationId: LOCATION_ID,
-  name: name,
-  email: email,
-  phone: phone || "",
-  source: source || "Website Review Widget",
-  // Custom fields directly here, not nested
-  [CUSTOM_FIELDS.RATING]: String(rating || ""),
-  [CUSTOM_FIELDS.REVIEW_LOCATION]: String(location || ""),
-  [CUSTOM_FIELDS.REVIEW_DATE]: date || new Date().toISOString(),
-  [CUSTOM_FIELDS.YOUR_FEEDBACK]: String(feedback || "")
-};
+      locationId: LOCATION_ID,
+      name: name,
+      email: email,
+      phone: phone || "",
+      source: source || "Website Review Widget"
+    };
 
-    console.log('Upserting contact...');
+    console.log('Step 1: Creating/updating contact...');
     
     const upsertResponse = await fetch(`${BASE_URL}/contacts/upsert`, {
       method: "POST",
@@ -122,9 +117,48 @@ export default async function handler(req, res) {
       });
     }
 
-    console.log('Contact upserted successfully:', contactId);
+    console.log('Contact created/updated successfully:', contactId);
 
-    // 2. Create a note for the contact
+    // Step 2: Update custom fields using the contact update endpoint
+    const customFieldsBody = {
+      customFields: [
+        { 
+          id: CUSTOM_FIELDS.RATING, 
+          value: String(rating || "") 
+        },
+        { 
+          id: CUSTOM_FIELDS.REVIEW_LOCATION, 
+          value: String(location || "") 
+        },
+        { 
+          id: CUSTOM_FIELDS.REVIEW_DATE, 
+          value: date || new Date().toISOString() 
+        },
+        { 
+          id: CUSTOM_FIELDS.YOUR_FEEDBACK, 
+          value: String(feedback || "") 
+        }
+      ]
+    };
+
+    console.log('Step 2: Updating custom fields...');
+    
+    const updateResponse = await fetch(`${BASE_URL}/contacts/${contactId}`, {
+      method: "PUT",
+      headers: headers,
+      body: JSON.stringify(customFieldsBody)
+    });
+
+    if (!updateResponse.ok) {
+      const errorText = await updateResponse.text();
+      console.error('Custom fields update failed:', errorText);
+      // Don't fail completely if custom fields fail - contact is still created
+      console.log('Note: Contact created but custom fields update failed');
+    } else {
+      console.log('Custom fields updated successfully');
+    }
+
+    // Step 3: Create a note for the contact
     const noteText = [
       `=== Review Submission ===`,
       `Star Rating: ${rating || 'Not provided'}`,
@@ -137,7 +171,7 @@ export default async function handler(req, res) {
       `Source: ${source || 'Website Review Widget'}`
     ].join("\n");
 
-    console.log('Adding note to contact...');
+    console.log('Step 3: Adding note to contact...');
     
     const noteResponse = await fetch(`${BASE_URL}/contacts/${contactId}/notes`, {
       method: "POST",
@@ -151,10 +185,10 @@ export default async function handler(req, res) {
       // Don't fail the whole request if note fails
     }
 
-    // 3. Add tags for low ratings (1-3 stars)
+    // Step 4: Add tags for low ratings (1-3 stars)
     if (rating && Number(rating) <= 3) {
       const tag = `${rating}-star-rating`;
-      console.log('Adding low rating tag:', tag);
+      console.log('Step 4: Adding low rating tag:', tag);
       
       const tagResponse = await fetch(`${BASE_URL}/contacts/${contactId}/tags`, {
         method: "POST",
