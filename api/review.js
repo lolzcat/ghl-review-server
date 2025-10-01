@@ -7,7 +7,7 @@ export default async function handler(req, res) {
     'https://app.gohighlevel.com',  // Your WordPress domain
     'http://localhost',              // For local testing
     // Add your actual WordPress domain here:
-    // 'https://yourdomain.com'
+    'https://www.huffmanhuffman.com'
   ];
   
   const origin = req.headers.origin;
