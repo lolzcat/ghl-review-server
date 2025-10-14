@@ -3,12 +3,11 @@
 
 export default async function handler(req, res) {
   // Enable CORS for your WordPress site
-  const allowedOrigins = [
-    'https://app.gohighlevel.com',
-    'http://localhost',
-    // Add your actual WordPress domain here:
-    // 'https://yourdomain.com'
-  ];
+ const allowedOrigins = [
+  'https://www.huffmanhuffman.com',  // Your WordPress site
+  'https://app.gohighlevel.com',
+  'http://localhost'
+];
   
   const origin = req.headers.origin;
   if (allowedOrigins.includes(origin)) {
